@@ -1,13 +1,19 @@
 package com.codestates.member.controller;
 
+import com.codestates.member.dto.MemberPageResponseDto;
 import com.codestates.member.dto.MemberPatchDto;
 import com.codestates.member.dto.MemberPostDto;
 import com.codestates.member.dto.MemberResponseDto;
 import com.codestates.member.entity.Member;
 import com.codestates.member.mapper.MemberMapper;
 import com.codestates.member.service.MemberService;
+import com.codestates.pagination.PageInfo;
+import com.codestates.pagination.PageMapper;
 import com.codestates.utils.UriCreator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.querydsl.QPageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -15,7 +21,10 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import java.net.URI;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 
@@ -33,9 +42,12 @@ public class MemberController {
     private final MemberService memberService;
     private final MemberMapper mapper;
 
-    public MemberController(MemberService memberService, MemberMapper mapper) {
+    private final PageMapper pageMapper;
+
+    public MemberController(MemberService memberService, MemberMapper mapper, PageMapper pageMapper) {
         this.memberService = memberService;
         this.mapper = mapper;
+        this.pageMapper = pageMapper;
     }
 
     @PostMapping
@@ -71,12 +83,17 @@ public class MemberController {
     }
 
     @GetMapping
-    public ResponseEntity getMembers() {
-        // TODO 페이지네이션을 적용하세요!
-        List<Member> members = memberService.findMembers();
-        List<MemberResponseDto> response = mapper.membersToMemberResponseDtos(members);
+    public ResponseEntity getMembers(@Valid @PositiveOrZero @RequestParam(name = "page") int page,
+                                     @Valid @PositiveOrZero @RequestParam(name = "size") int size) {
 
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        // TODO 페이지네이션을 적용하세요!
+        Page<Member> pages = memberService.getList(page, size);
+        PageInfo pageInfo = pageMapper.pageTopageInfo(pages);
+
+        List<Member> members = pages.getContent();
+        List<MemberResponseDto> response = mapper.membersToMemberResponseDtos(members);
+        memberService.sortMembers(response);
+        return new ResponseEntity<>(new MemberPageResponseDto<>(response, pageInfo), HttpStatus.OK);
     }
 
     @DeleteMapping("/{member-id}")

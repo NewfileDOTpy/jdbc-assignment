@@ -2,10 +2,16 @@ package com.codestates.member.service;
 
 import com.codestates.exception.BusinessLogicException;
 import com.codestates.exception.ExceptionCode;
+import com.codestates.member.dto.MemberResponseDto;
 import com.codestates.member.entity.Member;
 import com.codestates.member.repository.MemberRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +24,8 @@ import java.util.Optional;
 @Service
 public class MemberService {
     private final MemberRepository memberRepository;
+
+
 
     public MemberService(MemberRepository memberRepository) {
         this.memberRepository = memberRepository;
@@ -48,16 +56,25 @@ public class MemberService {
         return findVerifiedMember(memberId);
     }
 
-    public List<Member> findMembers() {
-        // TODO 페이지네이션을 적용하세요!
-        return (List<Member>) memberRepository.findAll();
-    }
+//    public List<Member> findMembers(int page,int size) {
+//        Pageable pageable = PageRequest.of(page, size);
+//        return (List<Member>) memberRepository.findAll(pageable);
+//    }
 
     public void deleteMember(long memberId) {
         Member findMember = findVerifiedMember(memberId);
-
         memberRepository.delete(findMember);
     }
+
+    public Page<Member> getList(int page, int size){
+        // TODO 페이지네이션을 적용하세요!
+        Pageable pageable = PageRequest.of(page, size);
+        return memberRepository.findAll(pageable);
+    }
+    public void sortMembers(List<MemberResponseDto> members) {
+        Collections.sort(members, Comparator.comparing(MemberResponseDto::getMemberId).reversed());
+    }
+
 
     public Member findVerifiedMember(long memberId) {
         Optional<Member> optionalMember = memberRepository.findById(memberId);
